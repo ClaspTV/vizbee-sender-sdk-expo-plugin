@@ -92,6 +92,7 @@ const withVizbeeAndroidPlugins: ConfigPlugin<VizbeePluginOptions> = (
   config = withPluginInitializeVizbeeAndroid(config, {
     vizbeeAppId: props.vizbeeAppId,
     layoutConfigFilePath: props.layoutConfigFilePath,
+    language: props.android.language,
   });
 
   return config;

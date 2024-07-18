@@ -10,7 +10,8 @@ import fs from "fs";
 const withVizbeeInitialization: ConfigPlugin<{
   vizbeeAppId: string;
   layoutConfigFilePath?: string;
-}> = (config, { vizbeeAppId, layoutConfigFilePath }) => {
+  language?: "kotlin" | "java";
+}> = (config, { vizbeeAppId, layoutConfigFilePath, language = "kotlin" }) => {
   if (!vizbeeAppId) {
     throw new Error(`Cannot find vizbeeAppId in params it is mandatory`);
   }
@@ -32,7 +33,8 @@ const withVizbeeInitialization: ConfigPlugin<{
     config.modResults.contents = addVizbeeInitialization(
       config.modResults.contents,
       vizbeeAppId,
-      layoutConfig
+      layoutConfig,
+      language
     );
     return config;
   });
@@ -45,18 +47,20 @@ const withVizbeeInitialization: ConfigPlugin<{
  * @param mainApplicationContents - Contents of MainApplication file as string.
  * @param vizbeeAppId - Vizbee application ID.
  * @param layoutConfig - Layout configuration object.
+ * @param language - Language of the file ("kotlin" or "java").
  * @returns Updated contents of MainApplication file.
  */
 function addVizbeeInitialization(
   mainApplicationContents: string,
   vizbeeAppId: string,
-  layoutConfig: object | null
+  layoutConfig: object | null,
+  language: "kotlin" | "java"
 ): string {
   const VIZBEE_INITIALIZATION_LINE = layoutConfig
     ? `VizbeeBootstrap.getInstance().initialize(
     this,
     "${vizbeeAppId}",
-    new org.json.JSONObject(${JSON.stringify(layoutConfig)})
+    ${language === "kotlin" ? 'JSONObject("""' + JSON.stringify(layoutConfig) + '""".trimIndent())' : `new JSONObject(${JSON.stringify(layoutConfig)})`}
 );`
     : `VizbeeBootstrap.getInstance().initialize(
     this,
@@ -64,21 +68,22 @@ function addVizbeeInitialization(
 );`;
 
   // For Java and Kotlin, look for super.onCreate() and insert the initialization line after it
-  const javaSuperOnCreateMatch = mainApplicationContents.match(
-    /super\.onCreate\(.*\);\n/
-  );
-  const kotlinSuperOnCreateMatch = mainApplicationContents.match(
-    /super\.onCreate\(.*\)\n/
-  );
+  const superOnCreateMatch =
+    language === "java"
+      ? mainApplicationContents.match(/super\.onCreate\(.*\);\n/)
+      : mainApplicationContents.match(/super\.onCreate\(.*\)\n/);
 
-  const importLine = "import tv.vizbee.rnsender.VizbeeBootstrap;";
+  const importLines = layoutConfig
+    ? language === "java"
+      ? "import tv.vizbee.rnsender.VizbeeBootstrap;\nimport org.json.JSONObject;"
+      : "import tv.vizbee.rnsender.VizbeeBootstrap\nimport org.json.JSONObject"
+    : language === "java"
+      ? "import tv.vizbee.rnsender.VizbeeBootstrap;"
+      : "import tv.vizbee.rnsender.VizbeeBootstrap";
 
-  if (javaSuperOnCreateMatch?.index || kotlinSuperOnCreateMatch?.index) {
+  if (superOnCreateMatch?.index) {
     const superOnCreateIndex =
-      (javaSuperOnCreateMatch?.index ?? kotlinSuperOnCreateMatch?.index ?? 0) +
-      (javaSuperOnCreateMatch?.[0]?.length ??
-        kotlinSuperOnCreateMatch?.[0]?.length ??
-        0);
+      superOnCreateMatch.index + superOnCreateMatch[0].length;
     mainApplicationContents =
       mainApplicationContents.slice(0, superOnCreateIndex) +
       VIZBEE_INITIALIZATION_LINE +
@@ -90,19 +95,18 @@ function addVizbeeInitialization(
     );
   }
 
-  // Add import statement if not already present
-  if (!mainApplicationContents.includes(importLine)) {
+  // Add import statements if not already present
+  if (!mainApplicationContents.includes(importLines)) {
     const packageDeclarationMatch =
       mainApplicationContents.match(/package\s+[\w.]+;?/);
 
     if (packageDeclarationMatch) {
       const packageDeclarationIndex =
-        (packageDeclarationMatch.index ?? 0) +
-        packageDeclarationMatch[0].length;
+        packageDeclarationMatch.index! + packageDeclarationMatch[0].length;
       mainApplicationContents =
         mainApplicationContents.slice(0, packageDeclarationIndex) +
         "\n\n" +
-        importLine +
+        importLines +
         "\n" +
         mainApplicationContents.slice(packageDeclarationIndex);
     }

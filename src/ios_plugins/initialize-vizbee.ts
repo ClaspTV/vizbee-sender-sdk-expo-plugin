@@ -5,6 +5,11 @@ import { log } from "../helper";
 
 const { getSourceRoot } = IOSConfig.Paths;
 
+function escapeForJavaScript(jsonString: string) {
+  // Escape double quotes in the JSON string
+  return jsonString.replace(/"/g, '\\"');
+}
+
 /**
  * Appends an import statement to the contents if it's not already present.
  * @param contents - The contents of the file.
@@ -106,19 +111,24 @@ function modifyAppDelegate(
     let layoutConfigLine = "";
     let getLayoutsConfigMethod = "";
     if (layoutConfig) {
-      const nsDictionaryLayoutConfig = JSON.stringify(layoutConfig)
-        .replace(/"/g, '@"')
-        .replace(/:/g, '":')
-        .replace(/,/g, '",');
-
       layoutConfigLine = `
   options.layoutsConfig = [self getLayoutsConfig];`;
 
       getLayoutsConfigMethod = `
 - (VZBLayoutsConfig *)getLayoutsConfig {
-  NSDictionary *layoutConfigDict = ${nsDictionaryLayoutConfig};
-  VZBLayoutsConfig *layoutConfig = [[VZBLayoutsConfig alloc] initFromDictionary:layoutConfigDict];
-  return layoutConfig;
+  NSString *jsonString = @"${escapeForJavaScript(JSON.stringify(layoutConfig))}";
+  NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+  NSError *error = nil;
+  NSDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+
+  if (!error) {
+    VZBLayoutsConfig *layoutConfig = [[VZBLayoutsConfig alloc] initFromDictionary:dictionary];
+    if(dictionary[@"playerCardConfiguration"]){
+      layoutConfig.playerCardConfiguration = dictionary[@"playerCardConfiguration"];
+    }
+    return layoutConfig;
+  }
+  return [[VZBLayoutsConfig alloc] initFromDictionary:@{}];
 }`;
     }
 
@@ -144,7 +154,7 @@ function modifyAppDelegate(
     }
 
     // Add the getLayoutsConfig method if not already present
-    if (layoutConfig && !appDelegate.contents.includes("getLayoutsConfig")) {
+    if (layoutConfig) {
       const endIndex = appDelegate.contents.lastIndexOf("@end");
       if (endIndex !== -1) {
         appDelegate.contents =
@@ -166,18 +176,34 @@ function modifyAppDelegate(
     let layoutConfigLine = "";
     let getLayoutsConfigMethod = "";
     if (layoutConfig) {
-      const swiftDictLayoutConfig = JSON.stringify(layoutConfig)
-        .replace(/"/g, "")
-        .replace(/:/g, ": ")
-        .replace(/,/g, ", ");
-
       layoutConfigLine = `
   options.layoutsConfig = getLayoutsConfig()`;
 
       getLayoutsConfigMethod = `
 func getLayoutsConfig() -> VZBLayoutsConfig {
-  let layoutConfigDict: [String: Any] = ${swiftDictLayoutConfig}
-  return VZBLayoutsConfig(fromDictionary: layoutConfigDict)
+  let jsonString = "${escapeForJavaScript(JSON.stringify(layoutConfig))}";
+  // Convert JSON string to Data
+  guard let jsonData = jsonString.data(using: .utf8) else {
+    print("Failed to convert JSON string to Data")
+    return
+  }
+
+  // Deserialize JSON data into a dictionary
+  do {
+    if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+        // Use the dictionary here
+      let layoutsConfig = VZBLayoutsConfig(fromDictionary: dictionary)
+      if (dictionary["playerCardConfiguration"]){
+        layoutsConfig.playerCardConfiguration = dictionary["playerCardConfiguration"]
+      }
+      return layoutsConfig
+    } else {
+        print("Failed to convert JSON data to dictionary")
+    }
+  } catch {
+    print("Error deserializing JSON: \\(error.localizedDescription)")
+  }
+  return VZBLayoutsConfig(fromDictionary: [:])
 }`;
     }
 
@@ -203,7 +229,7 @@ func getLayoutsConfig() -> VZBLayoutsConfig {
     }
 
     // Add the getLayoutsConfig method if not already present
-    if (layoutConfig && !appDelegate.contents.includes("getLayoutsConfig")) {
+    if (layoutConfig) {
       const classEndIndex = appDelegate.contents.lastIndexOf("}");
       if (classEndIndex !== -1) {
         appDelegate.contents =
