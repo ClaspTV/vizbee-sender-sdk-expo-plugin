@@ -1,15 +1,16 @@
-const { withMainApplication } = require("@expo/config-plugins");
-const fs = require("fs");
+import { ConfigPlugin, withMainApplication } from "@expo/config-plugins";
+import fs from "fs";
 
 /**
  * Adds Vizbee initialization line to MainApplication's onCreate method.
- * @param {Object} config Expo config object.
- * @param {Object} options Options object containing parameters like vizbeeAppId and layoutConfigFilePath.
+ * @param config - Expo config object.
+ * @param options - Options object containing parameters like vizbeeAppId and layoutConfigFilePath.
+ * @returns The modified config object.
  */
-const withVizbeeInitialization = (
-  config,
-  { vizbeeAppId, layoutConfigFilePath }
-) => {
+const withVizbeeInitialization: ConfigPlugin<{
+  vizbeeAppId: string;
+  layoutConfigFilePath?: string;
+}> = (config, { vizbeeAppId, layoutConfigFilePath }) => {
   if (!vizbeeAppId) {
     throw new Error(`Cannot find vizbeeAppId in params it is mandatory`);
   }
@@ -41,16 +42,16 @@ const withVizbeeInitialization = (
 
 /**
  * Adds the Vizbee initialization line to MainApplication.java or MainApplication.kt.
- * @param {string} mainApplicationContents Contents of MainApplication file as string.
- * @param {string} vizbeeAppId Vizbee application ID.
- * @param {Object|null} layoutConfig Layout configuration object.
- * @returns {string} Updated contents of MainApplication file.
+ * @param mainApplicationContents - Contents of MainApplication file as string.
+ * @param vizbeeAppId - Vizbee application ID.
+ * @param layoutConfig - Layout configuration object.
+ * @returns Updated contents of MainApplication file.
  */
 function addVizbeeInitialization(
-  mainApplicationContents,
-  vizbeeAppId,
-  layoutConfig
-) {
+  mainApplicationContents: string,
+  vizbeeAppId: string,
+  layoutConfig: object | null
+): string {
   const VIZBEE_INITIALIZATION_LINE = layoutConfig
     ? `VizbeeBootstrap.getInstance().initialize(
     this,
@@ -69,23 +70,15 @@ function addVizbeeInitialization(
   const kotlinSuperOnCreateMatch = mainApplicationContents.match(
     /super\.onCreate\(.*\)\n/
   );
-  var importLine = "";
 
-  if (javaSuperOnCreateMatch) {
-    importLine = "import tv.vizbee.rnsender.VizbeeBootstrap;";
+  const importLine = "import tv.vizbee.rnsender.VizbeeBootstrap;";
 
+  if (javaSuperOnCreateMatch?.index || kotlinSuperOnCreateMatch?.index) {
     const superOnCreateIndex =
-      javaSuperOnCreateMatch.index + javaSuperOnCreateMatch[0].length;
-    mainApplicationContents =
-      mainApplicationContents.slice(0, superOnCreateIndex) +
-      VIZBEE_INITIALIZATION_LINE +
-      "\n" +
-      mainApplicationContents.slice(superOnCreateIndex);
-  } else if (kotlinSuperOnCreateMatch) {
-    importLine = "import tv.vizbee.rnsender.VizbeeBootstrap";
-
-    const superOnCreateIndex =
-      kotlinSuperOnCreateMatch.index + kotlinSuperOnCreateMatch[0].length;
+      (javaSuperOnCreateMatch?.index ?? kotlinSuperOnCreateMatch?.index ?? 0) +
+      (javaSuperOnCreateMatch?.[0]?.length ??
+        kotlinSuperOnCreateMatch?.[0]?.length ??
+        0);
     mainApplicationContents =
       mainApplicationContents.slice(0, superOnCreateIndex) +
       VIZBEE_INITIALIZATION_LINE +
@@ -99,14 +92,13 @@ function addVizbeeInitialization(
 
   // Add import statement if not already present
   if (!mainApplicationContents.includes(importLine)) {
-    console.log("packageDeclarationMatch");
     const packageDeclarationMatch =
-      mainApplicationContents.match(/package\s+[\w\.]+;?/);
+      mainApplicationContents.match(/package\s+[\w.]+;?/);
 
     if (packageDeclarationMatch) {
-      console.log("packageDeclarationIndex");
       const packageDeclarationIndex =
-        packageDeclarationMatch.index + packageDeclarationMatch[0].length;
+        (packageDeclarationMatch.index ?? 0) +
+        packageDeclarationMatch[0].length;
       mainApplicationContents =
         mainApplicationContents.slice(0, packageDeclarationIndex) +
         "\n\n" +
@@ -119,4 +111,4 @@ function addVizbeeInitialization(
   return mainApplicationContents;
 }
 
-module.exports = withVizbeeInitialization;
+export default withVizbeeInitialization;

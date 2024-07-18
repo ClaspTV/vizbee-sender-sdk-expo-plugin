@@ -1,33 +1,46 @@
-const { withAppDelegate } = require("@expo/config-plugins");
+import { ConfigPlugin, withAppDelegate } from "@expo/config-plugins";
+import { log } from "../helper";
 
+/**
+ * Adds the required code to the `applicationDidBecomeActive` method in the AppDelegate.
+ * @param theme - The user interface style theme.
+ * @param appDelegate - The AppDelegate contents to modify.
+ * @param hasLayoutConfig - Whether the layout configuration is present.
+ * @param language - The programming language (either "objcpp" or "swift").
+ * @returns The modified AppDelegate contents.
+ */
 function addCodeToApplicationDidBecomeActive(
-  theme,
-  appDelegate,
+  theme: "light" | "dark" | "automatic",
+  appDelegate: { contents: string },
   hasLayoutConfig = false,
   language = "objcpp"
-) {
-  if(theme != "automatic"){
-    return;
+): any {
+  if (theme !== "automatic") {
+    return appDelegate;
   }
+  log("Modifying AppDelegate for Vizbee configuration.");
+
+  log("Adding code to applicationDidBecomeActive with theme:", theme);
+
   const applicationDidBecomeActiveRegex =
     language === "objcpp"
       ? /- \(void\)applicationDidBecomeActive:\(UIApplication \*\)application/
       : /func applicationDidBecomeActive\(_ application: UIApplication\)/;
 
-  let codeToAdd;
+  let codeToAdd = "";
   if (language === "objcpp") {
     if (hasLayoutConfig) {
       codeToAdd = `
-    if(UIApplication.sharedApplication.windows.firstObject.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark){
+    if (UIApplication.sharedApplication.windows.firstObject.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
         [Vizbee setUIConfig:[VizbeeStyles darkTheme] layouts:[self getLayoutsConfig]];
-    }else{
+    } else {
         [Vizbee setUIConfig:[VizbeeStyles lightTheme] layouts:[self getLayoutsConfig]];
     }`;
     } else {
       codeToAdd = `
-    if(UIApplication.sharedApplication.windows.firstObject.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark){
+    if (UIApplication.sharedApplication.windows.firstObject.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
         [Vizbee setUIConfig:[VizbeeStyles darkTheme]];
-    }else{
+    } else {
         [Vizbee setUIConfig:[VizbeeStyles lightTheme]];
     }`;
     }
@@ -50,7 +63,7 @@ function addCodeToApplicationDidBecomeActive(
   }
 
   if (applicationDidBecomeActiveRegex.test(appDelegate.contents)) {
-    return appDelegate.contents.replace(
+    appDelegate.contents = appDelegate.contents.replace(
       applicationDidBecomeActiveRegex,
       (match) => `${match} {\n${codeToAdd}`
     );
@@ -70,14 +83,27 @@ function addCodeToApplicationDidBecomeActive(
           appDelegate.contents.slice(0, classEndIndex) + methodToAdd + "\n}";
       }
     }
-    return appDelegate;
   }
+  log("AppDelegate modified successfully.");
+
+  return appDelegate;
 }
 
-const withVizbeeConfig = (config, { hasLayoutConfig, language }) => {
+/**
+ * A config plugin to modify the AppDelegate to add Vizbee configuration.
+ * @param config - The Expo config object.
+ * @param options - Options for the plugin.
+ * @param options.hasLayoutConfig - Whether the layout configuration is present.
+ * @param options.language - The programming language (either "objcpp" or "swift").
+ * @returns The modified config object.
+ */
+const withVizbeeConfig: ConfigPlugin<{
+  hasLayoutConfig: boolean;
+  language?: "objcpp" | "swift";
+}> = (config, { hasLayoutConfig, language }) => {
   return withAppDelegate(config, (config) => {
     config.modResults = addCodeToApplicationDidBecomeActive(
-      config.userInterfaceStyle,
+      config.userInterfaceStyle || "light",
       config.modResults,
       hasLayoutConfig,
       language
@@ -86,4 +112,4 @@ const withVizbeeConfig = (config, { hasLayoutConfig, language }) => {
   });
 };
 
-module.exports = withVizbeeConfig;
+export default withVizbeeConfig;

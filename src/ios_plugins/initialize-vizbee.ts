@@ -1,46 +1,87 @@
-const { withAppDelegate } = require("@expo/config-plugins");
-const fs = require("fs");
+import { ConfigPlugin, withAppDelegate, IOSConfig } from "@expo/config-plugins";
+import fs from "fs";
+import path from "path";
+import { log } from "../helper";
 
-function appendImportIfNeeded(contents, importStatement) {
+const { getSourceRoot } = IOSConfig.Paths;
+
+/**
+ * Appends an import statement to the contents if it's not already present.
+ * @param contents - The contents of the file.
+ * @param importStatement - The import statement to append.
+ * @returns The modified contents.
+ */
+function appendImportIfNeeded(
+  contents: string,
+  importStatement: string
+): string {
   if (!contents.includes(importStatement)) {
     const match = contents.match(/#import "AppDelegate.h"/);
-    if (match) {
+    if (match && match.index !== undefined) {
       const insertPosition = match.index + match[0].length;
       contents =
         contents.slice(0, insertPosition) +
         `\n${importStatement}` +
         contents.slice(insertPosition);
+    } else {
+      console.warn(
+        'Could not find "#import "AppDelegate.h"" to insert the import statement.'
+      );
     }
   }
   return contents;
 }
 
-function appendSwiftImportIfNeeded(contents, importStatement) {
+/**
+ * Appends a Swift import statement to the contents if it's not already present.
+ * @param contents - The contents of the file.
+ * @param importStatement - The import statement to append.
+ * @returns The modified contents.
+ */
+function appendSwiftImportIfNeeded(
+  contents: string,
+  importStatement: string
+): string {
   if (!contents.includes(importStatement)) {
     const match = contents.match(/import UIKit/);
-    if (match) {
+    if (match && match.index !== undefined) {
       const insertPosition = match.index + match[0].length;
       contents =
         contents.slice(0, insertPosition) +
         `\n${importStatement}` +
         contents.slice(insertPosition);
+    } else {
+      console.warn(
+        'Could not find "import UIKit" to insert the import statement.'
+      );
     }
   }
   return contents;
 }
 
+/**
+ * Modifies the AppDelegate file to include Vizbee initialization code.
+ * @param theme - The theme to apply.
+ * @param appDelegate - The AppDelegate contents.
+ * @param projectName - The project name.
+ * @param vizbeeAppId - The Vizbee App ID.
+ * @param layoutConfig - The layout configuration.
+ * @param language - The language of the AppDelegate file (objcpp or swift).
+ * @returns The modified AppDelegate contents.
+ */
 function modifyAppDelegate(
-  theme,
-  appDelegate,
-  projectName,
-  vizbeeAppId,
-  layoutConfig,
-  language
-) {
-  console.log({ theme });
+  theme: "light" | "dark" | "automatic",
+  appDelegate: { contents: string },
+  projectName: string,
+  vizbeeAppId: string,
+  layoutConfig: Record<string, any> | null,
+  language: "objcpp" | "swift"
+): any {
   if (!vizbeeAppId) {
-    throw new Error(`Cannot find vizbeeAppId in params it is mandatory`);
+    throw new Error("Cannot find vizbeeAppId in params it is mandatory");
   }
+
+  log(`Modifying AppDelegate`);
 
   let themeConfig = "";
   if (language === "objcpp") {
@@ -74,7 +115,7 @@ function modifyAppDelegate(
   options.layoutsConfig = [self getLayoutsConfig];`;
 
       getLayoutsConfigMethod = `
-- (VZBLayoutsConfig *)getLayoutsConfig{
+- (VZBLayoutsConfig *)getLayoutsConfig {
   NSDictionary *layoutConfigDict = ${nsDictionaryLayoutConfig};
   VZBLayoutsConfig *layoutConfig = [[VZBLayoutsConfig alloc] initFromDictionary:layoutConfigDict];
   return layoutConfig;
@@ -94,6 +135,9 @@ function modifyAppDelegate(
       appDelegate.contents = appDelegate.contents.replace(
         didFinishLaunchingRegex,
         (match, methodStart, returnStatement) => {
+          log(
+            "Inserting Vizbee initialization code into didFinishLaunchingWithOptions"
+          );
           return `${methodStart}\n${codeToAdd}${returnStatement}`;
         }
       );
@@ -107,6 +151,7 @@ function modifyAppDelegate(
           appDelegate.contents.slice(0, endIndex) +
           getLayoutsConfigMethod +
           "\n\n@end";
+        log("Added getLayoutsConfig method to AppDelegate");
       }
     }
   } else if (language === "swift") {
@@ -149,6 +194,9 @@ func getLayoutsConfig() -> VZBLayoutsConfig {
       appDelegate.contents = appDelegate.contents.replace(
         didFinishLaunchingRegex,
         (match, methodStart, returnStatement) => {
+          log(
+            "Inserting Vizbee initialization code into didFinishLaunchingWithOptions"
+          );
           return `${methodStart}\n${codeToAdd}${returnStatement}`;
         }
       );
@@ -162,6 +210,7 @@ func getLayoutsConfig() -> VZBLayoutsConfig {
           appDelegate.contents.slice(0, classEndIndex) +
           getLayoutsConfigMethod +
           "\n}";
+        log("Added getLayoutsConfig method to AppDelegate");
       }
     }
   }
@@ -169,12 +218,25 @@ func getLayoutsConfig() -> VZBLayoutsConfig {
   return appDelegate;
 }
 
-const withVizbeeInitialization = (
+/**
+ * Config plugin to initialize Vizbee in the AppDelegate.
+ * @param config - The Expo config object.
+ * @param options - Configuration options.
+ * @returns The modified config object.
+ */
+const withVizbeeInitialization: ConfigPlugin<{
+  vizbeeAppId: string;
+  layoutConfigFilePath?: string;
+  language?: "objcpp" | "swift";
+}> = (
   config,
-  { theme, vizbeeAppId, layoutConfigFilePath = null, language = "objcpp" }
+  { vizbeeAppId, layoutConfigFilePath = null, language = "objcpp" }
 ) => {
   return withAppDelegate(config, (config) => {
-    const { projectName } = config.modRequest;
+    const {
+      projectRoot,
+      projectName = path.basename(getSourceRoot(projectRoot)),
+    } = config.modRequest;
     let layoutConfig = null;
 
     if (layoutConfigFilePath) {
@@ -188,15 +250,16 @@ const withVizbeeInitialization = (
       }
     }
     config.modResults = modifyAppDelegate(
-      config.userInterfaceStyle,
+      config.userInterfaceStyle || "light",
       config.modResults,
       projectName,
       vizbeeAppId,
       layoutConfig,
       language
     );
+    log("Modified AppDelegate with Vizbee initialization");
     return config;
   });
 };
 
-module.exports = withVizbeeInitialization;
+export default withVizbeeInitialization;

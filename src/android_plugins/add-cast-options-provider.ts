@@ -1,20 +1,35 @@
-const {
+import {
+  ConfigPlugin,
   withAndroidManifest,
   withMainApplication,
   withAppBuildGradle,
-} = require("@expo/config-plugins");
-const fs = require("fs");
-const path = require("path");
+} from "@expo/config-plugins";
+import fs from "fs";
+import path from "path";
+import { log } from "../helper";
 
-const withCustomCastOptions = (
-  config,
-  { chromecastAppId, language = "kotlin" }
-) => {
+/**
+ * A config plugin to add custom Cast options to an Android project.
+ * @param config - The Expo config object.
+ * @param options - Options for the plugin.
+ * @param options.chromecastAppId - The Chromecast application ID.
+ * @param options.language - The programming language for the CastOptionsProvider class (either "kotlin" or "java").
+ * @returns The modified config object.
+ */
+const withCustomCastOptions: ConfigPlugin<{
+  chromecastAppId: string;
+  language?: "kotlin" | "java";
+}> = (config, { chromecastAppId, language = "kotlin" }) => {
   if (!chromecastAppId) {
-    throw new Error(`Cannot find chromecastAppId in params it is mandatory`);
+    throw new Error(`Cannot find chromecastAppId in params; it is mandatory.`);
   }
 
-  const packageName = config.android.package;
+  log("Adding custom Cast options with Chromecast App ID:", chromecastAppId);
+  const packageName = config.android?.package;
+  if (!packageName) {
+    throw new Error("Cannot find the Android package name in the config.");
+  }
+
   // Add meta-data to AndroidManifest.xml
   config = withAndroidManifest(config, (config) => {
     const { manifest } = config.modResults;
@@ -22,14 +37,13 @@ const withCustomCastOptions = (
       throw new Error(
         "configureAndroidManifest: No application array in manifest?"
       );
-      return config;
     }
 
     const application = manifest.application.find(
       (item) => item.$ && item.$["android:name"] === ".MainApplication"
     );
     if (!application) {
-      throw new Error("configureAndroidManifest: No .MainApplication?");
+      throw new Error("configureAndroidManifest: No .MainApplication found.");
     }
 
     application["meta-data"] = application["meta-data"] || [];
@@ -40,6 +54,8 @@ const withCustomCastOptions = (
         "android:value": `${packageName}.CastOptionsProvider`,
       },
     });
+
+    log("Added meta-data to AndroidManifest.xml for CastOptionsProvider.");
     return config;
   });
 
@@ -125,7 +141,9 @@ public class CastOptionsProvider implements OptionsProvider {
     }
 }
 `;
+
     fs.writeFileSync(castOptionsProviderPath, castOptionsProviderContent);
+    log(`Created ${castOptionsProviderPath} for CastOptionsProvider.`);
 
     return config;
   });
@@ -152,6 +170,11 @@ public class CastOptionsProvider implements OptionsProvider {
         // If no dependencies block is found, append the whole block
         config.modResults.contents += `\ndependencies {\n    ${dependency}\n}\n`;
       }
+      log("Added play-services-cast-framework dependency to build.gradle.");
+    } else {
+      log(
+        "play-services-cast-framework dependency already exists in build.gradle."
+      );
     }
 
     return config;
@@ -160,4 +183,4 @@ public class CastOptionsProvider implements OptionsProvider {
   return config;
 };
 
-module.exports = withCustomCastOptions;
+export default withCustomCastOptions;

@@ -1,8 +1,10 @@
-const { withDangerousMod } = require("@expo/config-plugins");
-const fs = require("fs");
-const path = require("path");
-const xml2js = require("xml2js");
+import { ConfigPlugin, withDangerousMod } from "@expo/config-plugins";
+import fs from "fs";
+import path from "path";
+import xml2js from "xml2js";
+import { log } from "../helper";
 
+// Define paths to XML files
 const PATH = {
   stylesXmlPaths: {
     values: "/vizbee_resources/android/light/styles.xml",
@@ -14,7 +16,11 @@ const PATH = {
   },
 };
 
-const createEmptyXml = (filePath) => {
+/**
+ * Creates an empty XML file at the specified path.
+ * @param filePath - Path to the XML file to create.
+ */
+const createEmptyXml = (filePath: string): void => {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -24,8 +30,15 @@ const createEmptyXml = (filePath) => {
   fs.writeFileSync(filePath, emptyXml);
 };
 
-const mergeXmlFiles = async (existingFilePath, newFilePath) => {
-  console.log(newFilePath);
+/**
+ * Merges two XML files into one, merging styles and colors.
+ * @param existingFilePath - Path to the existing XML file.
+ * @param newFilePath - Path to the new XML file to merge.
+ */
+const mergeXmlFiles = async (
+  existingFilePath: string,
+  newFilePath: string
+): Promise<void> => {
   if (!fs.existsSync(newFilePath)) {
     return;
   }
@@ -40,24 +53,17 @@ const mergeXmlFiles = async (existingFilePath, newFilePath) => {
   const existingJson = await xml2js.parseStringPromise(existingXml);
   const newJson = await xml2js.parseStringPromise(newXml);
 
-  if (!existingJson.resources) {
-    existingJson.resources = {};
-  }
-  if (!existingJson.resources.style) {
-    existingJson.resources.style = [];
-  }
-  if (!existingJson.resources.color) {
-    existingJson.resources.color = [];
-  }
-  if (!newJson.resources) {
-    return;
-  }
+  // Ensure resources and arrays exist
+  existingJson.resources = existingJson.resources || {};
+  existingJson.resources.style = existingJson.resources.style || [];
+  existingJson.resources.color = existingJson.resources.color || [];
 
-  const mergeResources = (existing, toMerge) => {
+  // Function to merge resources
+  const mergeResources = (existing: any[], toMerge: any[]) => {
     toMerge.forEach((item) => {
-      const existingItemIndex = existing.findIndex((exItem) => {
-        return JSON.stringify(exItem.$) === JSON.stringify(item.$);
-      });
+      const existingItemIndex = existing.findIndex(
+        (exItem) => JSON.stringify(exItem.$) === JSON.stringify(item.$)
+      );
       if (existingItemIndex === -1) {
         existing.push(item);
       }
@@ -73,7 +79,12 @@ const mergeXmlFiles = async (existingFilePath, newFilePath) => {
   fs.writeFileSync(existingFilePath, mergedXml);
 };
 
-const withCopyColorAndStyleXml = (config) => {
+/**
+ * A config plugin that copies and merges colors.xml and styles.xml files into Android project.
+ * @param config - The Expo config object.
+ * @returns The modified config object.
+ */
+const withCopyColorAndStyleXml: ConfigPlugin = (config) => {
   return withDangerousMod(config, [
     "android",
     async (config) => {
@@ -98,6 +109,8 @@ const withCopyColorAndStyleXml = (config) => {
         path.join(valuesDir, "styles.xml"),
         path.join(config.modRequest.projectRoot, PATH.stylesXmlPaths.values)
       );
+      log(`Merged styles.xml for Android project.`);
+
       await mergeXmlFiles(
         path.join(valuesNightDir, "styles.xml"),
         path.join(
@@ -105,10 +118,14 @@ const withCopyColorAndStyleXml = (config) => {
           PATH.stylesXmlPaths.valuesNight
         )
       );
+      log(`Merged styles.xml for Android project (night mode).`);
+
       await mergeXmlFiles(
         path.join(valuesDir, "colors.xml"),
         path.join(config.modRequest.projectRoot, PATH.colorsXmlPaths.values)
       );
+      log(`Merged colors.xml for Android project.`);
+
       await mergeXmlFiles(
         path.join(valuesNightDir, "colors.xml"),
         path.join(
@@ -116,10 +133,11 @@ const withCopyColorAndStyleXml = (config) => {
           PATH.colorsXmlPaths.valuesNight
         )
       );
+      log(`Merged colors.xml for Android project (night mode).`);
 
       return config;
     },
   ]);
 };
 
-module.exports = withCopyColorAndStyleXml;
+export default withCopyColorAndStyleXml;
