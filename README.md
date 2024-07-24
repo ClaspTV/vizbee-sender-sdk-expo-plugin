@@ -37,7 +37,7 @@ For Expo managed projects, add the following to your `app.json` or `app.config.j
         "chromecastAppId": "your-chromecast-app-id",
         "layoutConfigFilePath": "./path/to/layoutConfig.json",
         "ios": {
-          "description": "Custom description for iOS."
+          "lnaPermissionText": "Custom description for iOS Local Area Network permission."
         }
       }
     ]
