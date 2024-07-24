@@ -1,6 +1,5 @@
 import { ConfigPlugin, createRunOncePlugin } from "@expo/config-plugins";
 import { VizbeePluginOptions } from "./types";
-import { log } from "./helper";
 
 // iOS Plugins
 import withPluginAddPodSource from "./ios_plugins/add-pod-source";
@@ -10,6 +9,7 @@ import withPluginModifyInfoPlist from "./ios_plugins/modify-info-plist";
 import withPluginAddIosStyleFiles from "./ios_plugins/add-vizbee-styles-file";
 import withPluginUpdateStyleOnThemeChange from "./ios_plugins/update-style-on-theme-change";
 import withPluginInitializeVizbeeIos from "./ios_plugins/initialize-vizbee";
+import withPluginAddGoogleCast from "./ios_plugins/add-google-cast-podfile";
 
 // // Android Plugins
 import withPluginAddMavenUrl from "./android_plugins/add-maven-url";
@@ -57,6 +57,11 @@ const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
     layoutConfigFilePath: props.layoutConfigFilePath,
     language: props.ios.language,
   });
+  if (props.ios.addGoogleCastToPods ?? true) {
+    config = withPluginAddGoogleCast(config, {
+      googleCastVersion: props.ios.googleCastVersion,
+    });
+  }
 
   return config;
 };
@@ -86,6 +91,7 @@ const withVizbeeAndroidPlugins: ConfigPlugin<VizbeePluginOptions> = (
   config = withPluginAddCastOptionsProvider(config, {
     chromecastAppId: props.chromecastAppId,
     language: props.android.language,
+    nativeSdkVersion: props.android.nativeSdkVersion,
   });
   config = withPluginAddAndroidStyleFiles(config);
   config = withPluginCopyColorAndStyleFiles(config);

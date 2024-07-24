@@ -7,8 +7,11 @@ export interface VizbeePluginOptions {
     target?: string;
     lnaPermissionText?: string;
     language?: "objcpp" | "swift";
+    googleCastVersion?: string;
+    addGoogleCastToPods?: boolean;
   };
   android?: {
     language?: "kotlin" | "java";
+    nativeSdkVersion?: string;
   };
 }

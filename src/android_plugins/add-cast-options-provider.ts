@@ -18,8 +18,12 @@ import { log } from "../helper";
  */
 const withCustomCastOptions: ConfigPlugin<{
   chromecastAppId: string;
+  nativeSdkVersion?: string;
   language?: "kotlin" | "java";
-}> = (config, { chromecastAppId, language = "kotlin" }) => {
+}> = (
+  config,
+  { chromecastAppId, nativeSdkVersion = "6.5.5", language = "kotlin" }
+) => {
   if (!chromecastAppId) {
     throw new Error(`Cannot find chromecastAppId in params; it is mandatory.`);
   }
@@ -151,7 +155,7 @@ public class CastOptionsProvider implements OptionsProvider {
   // Add dependency to build.gradle
   config = withAppBuildGradle(config, (config) => {
     const buildGradle = config.modResults.contents;
-    const dependency = `implementation 'com.google.android.gms:play-services-cast-framework:21.5.0'`;
+    const dependency = `implementation "tv.vizbee:android-sender-sdk:${nativeSdkVersion}"`;
 
     if (!buildGradle.includes(dependency)) {
       const pattern = /dependencies\s*{[^}]*}/;

@@ -57,15 +57,15 @@ function addVizbeeInitialization(
   language: "kotlin" | "java"
 ): string {
   const VIZBEE_INITIALIZATION_LINE = layoutConfig
-    ? `VizbeeBootstrap.getInstance().initialize(
+    ? `    VizbeeBootstrap.getInstance().initialize(
     this,
     "${vizbeeAppId}",
     ${language === "kotlin" ? 'JSONObject("""' + JSON.stringify(layoutConfig) + '""".trimIndent())' : `new JSONObject(${JSON.stringify(layoutConfig)})`}
-);`
-    : `VizbeeBootstrap.getInstance().initialize(
+    );`
+    : `    VizbeeBootstrap.getInstance().initialize(
     this,
     "${vizbeeAppId}"
-);`;
+    );`;
 
   // For Java and Kotlin, look for super.onCreate() and insert the initialization line after it
   const superOnCreateMatch =
@@ -86,8 +86,9 @@ function addVizbeeInitialization(
       superOnCreateMatch.index + superOnCreateMatch[0].length;
     mainApplicationContents =
       mainApplicationContents.slice(0, superOnCreateIndex) +
-      VIZBEE_INITIALIZATION_LINE +
       "\n" +
+      VIZBEE_INITIALIZATION_LINE +
+      "\n\n" +
       mainApplicationContents.slice(superOnCreateIndex);
   } else {
     throw new Error(
@@ -107,7 +108,6 @@ function addVizbeeInitialization(
         mainApplicationContents.slice(0, packageDeclarationIndex) +
         "\n\n" +
         importLines +
-        "\n" +
         mainApplicationContents.slice(packageDeclarationIndex);
     }
   }
