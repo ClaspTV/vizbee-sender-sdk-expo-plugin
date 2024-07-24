@@ -5,7 +5,7 @@ export interface VizbeePluginOptions {
   layoutConfigFilePath?: string;
   ios?: {
     target?: string;
-    description?: string;
+    lnaPermissionText?: string;
     language?: "objcpp" | "swift";
   };
   android?: {

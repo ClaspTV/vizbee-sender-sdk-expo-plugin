@@ -65,8 +65,8 @@ const withThemeFiles: ConfigPlugin = (config) => {
       try {
         addThemeFiles(
           projectRoot,
-          `${config.modRequest.projectRoot}/vizbee_resources/android/light/vizbee.xml`,
-          `${config.modRequest.projectRoot}/vizbee_resources/android/dark/vizbee.xml`
+          `${config.modRequest.projectRoot}/vizbee_resources/android/values/vizbee.xml`,
+          `${config.modRequest.projectRoot}/vizbee_resources/android/values-night/vizbee.xml`
         );
       } catch (error) {
         if (error instanceof Error) {

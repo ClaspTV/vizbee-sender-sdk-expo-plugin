@@ -7,12 +7,12 @@ import { log } from "../helper";
 // Define paths to XML files
 const PATH = {
   stylesXmlPaths: {
-    values: "/vizbee_resources/android/light/styles.xml",
-    valuesNight: "./vizbee_resources/android/dark/styles.xml",
+    values: "/vizbee_resources/android/values/styles.xml",
+    valuesNight: "./vizbee_resources/android/values-night/styles.xml",
   },
   colorsXmlPaths: {
-    values: "./vizbee_resources/android/light/colors.xml",
-    valuesNight: "./vizbee_resources/android/dark/colors.xml",
+    values: "./vizbee_resources/android/values/colors.xml",
+    valuesNight: "./vizbee_resources/android/values-night/colors.xml",
   },
 };
 

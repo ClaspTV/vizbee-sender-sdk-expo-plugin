@@ -42,7 +42,7 @@ const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
     target: props.ios.target,
   });
   config = withPluginModifyInfoPlist(config, {
-    description: props.ios.description,
+    description: props.ios.lnaPermissionText,
     receiverAppId: props.chromecastAppId,
   });
   config = withPluginAddIosStyleFiles(config, {
