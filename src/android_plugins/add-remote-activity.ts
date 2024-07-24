@@ -1,6 +1,22 @@
-const { withAndroidManifest } = require("@expo/config-plugins");
+import { ConfigPlugin, withAndroidManifest } from "@expo/config-plugins";
+import { AndroidManifest } from "@expo/config-plugins/build/android/Manifest";
+import { log } from "../helper";
 
-async function configureAndroidManifest(androidManifest, vizbeeAppId) {
+// Type definition for the Vizbee plugin options
+type VizbeePluginOptions = {
+  vizbeeAppId: string;
+};
+
+/**
+ * Configures the AndroidManifest to include the Vizbee activity.
+ * @param androidManifest - The current AndroidManifest object.
+ * @param vizbeeAppId - The Vizbee application ID.
+ * @returns The modified AndroidManifest object.
+ */
+async function configureAndroidManifest(
+  androidManifest: AndroidManifest,
+  vizbeeAppId: string
+): Promise<AndroidManifest> {
   const { manifest } = androidManifest;
 
   if (!Array.isArray(manifest.application)) {
@@ -16,8 +32,10 @@ async function configureAndroidManifest(androidManifest, vizbeeAppId) {
     throw new Error("configureAndroidManifest: No .MainApplication?");
   }
 
+  log("Adding Vizbee activity to AndroidManifest");
+
   // Define the new activity node to be added
-  const vizbeeActivity = {
+  const vizbeeActivity: any = {
     $: {
       "android:name": "tv.vizbee.api.RemoteActivity",
       "android:exported": "true",
@@ -41,13 +59,26 @@ async function configureAndroidManifest(androidManifest, vizbeeAppId) {
   // Append the vizbeeActivity XML to the activities
   application.activity.push(vizbeeActivity);
 
+  log("Vizbee activity added successfully");
+
   return androidManifest;
 }
 
-const withVizbeeAndroidManifest = (config, { vizbeeAppId }) => {
+/**
+ * A config plugin to add Vizbee activity to the AndroidManifest.
+ * @param config - The Expo config object.
+ * @param options - The Vizbee plugin options.
+ * @returns The modified config object.
+ */
+const withVizbeeAndroidManifest: ConfigPlugin<VizbeePluginOptions> = (
+  config,
+  { vizbeeAppId }
+) => {
   if (!vizbeeAppId) {
-    throw new Error(`Cannot find vizbeeAppId in params it is mandatory`);
+    throw new Error("Cannot find vizbeeAppId in params it is mandatory");
   }
+
+  log("Configuring AndroidManifest with Vizbee app ID:", vizbeeAppId);
 
   return withAndroidManifest(config, async (config) => {
     config.modResults = await configureAndroidManifest(
@@ -58,4 +89,4 @@ const withVizbeeAndroidManifest = (config, { vizbeeAppId }) => {
   });
 };
 
-module.exports = withVizbeeAndroidManifest;
+export default withVizbeeAndroidManifest;

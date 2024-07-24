@@ -1,16 +1,37 @@
-const { withDangerousMod, withPlugins } = require("@expo/config-plugins");
-const fs = require("fs");
-const path = require("path");
+import {
+  ConfigPlugin,
+  withDangerousMod,
+  withPlugins,
+} from "@expo/config-plugins";
+import fs from "fs";
+import path from "path";
+import { log } from "../helper";
 
-async function readFileAsync(filePath) {
+/**
+ * Reads the content of a file asynchronously.
+ * @param filePath - The path to the file.
+ * @returns A promise that resolves to the content of the file.
+ */
+async function readFileAsync(filePath: string): Promise<string> {
   return fs.promises.readFile(filePath, "utf8");
 }
 
-async function saveFileAsync(filePath, content) {
+/**
+ * Saves content to a file asynchronously.
+ * @param filePath - The path to the file.
+ * @param content - The content to save.
+ * @returns A promise that resolves when the file has been written.
+ */
+async function saveFileAsync(filePath: string, content: string): Promise<void> {
   return fs.promises.writeFile(filePath, content, "utf8");
 }
 
-const withAddMavenUrl = (config) => {
+/**
+ * A config plugin to add a Maven URL to the Android build.gradle file.
+ * @param config - The Expo config object.
+ * @returns The modified config object.
+ */
+const withAddMavenUrl: ConfigPlugin = (config) => {
   return withDangerousMod(config, [
     "android",
     async (config) => {
@@ -26,7 +47,13 @@ const withAddMavenUrl = (config) => {
   ]);
 };
 
-function addMavenUrl(src) {
+/**
+ * Adds a Maven URL to the provided Gradle build script content.
+ * @param src - The original Gradle build script content.
+ * @returns The modified Gradle build script content.
+ */
+function addMavenUrl(src: string): string {
+  log("Adding Maven URL to build.gradle");
   const allProjectsMatch = src.match(/allprojects\s*{[\s\S]*?}\s}/);
 
   if (allProjectsMatch) {
@@ -40,7 +67,7 @@ function addMavenUrl(src) {
 
       const updatedRepositoriesContent = repositoriesContent.replace(
         "{",
-        `{\n maven { url 'https://repo.claspws.tv/artifactory/libs' }\n`
+        `{\n    maven { url 'https://repo.claspws.tv/artifactory/libs' }\n`
       );
 
       const updatedAllProjectsContent = allProjectsContent.replace(
@@ -65,4 +92,12 @@ function addMavenUrl(src) {
   }
 }
 
-module.exports = (config) => withPlugins(config, [withAddMavenUrl]);
+/**
+ * Main export function to apply the plugin.
+ * @param config - The Expo config object.
+ * @returns The modified config object with the added plugin.
+ */
+const withCustomPlugin: ConfigPlugin = (config) =>
+  withPlugins(config, [withAddMavenUrl]);
+
+export default withCustomPlugin;

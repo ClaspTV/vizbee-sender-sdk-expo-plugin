@@ -1,6 +1,11 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo-module-scripts/tsconfig.plugin",
   "compilerOptions": {
-    "strict": true
-  }
+    "esModuleInterop": true,
+    "rootDir": "./",
+    "outDir": "./build",
+    "declaration": false
+  },
+  "include": ["./"],
+  "exclude": ["**/__mocks__/*", "**/__tests__/*", "examples"]
 }
