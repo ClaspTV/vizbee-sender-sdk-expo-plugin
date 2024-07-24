@@ -69,16 +69,16 @@ To support light and dark themes, and ensure proper styling, the following folde
 PROJECT_ROOT/
 ├── vizbee_resources/
       │   ├── android/
-			│   │   ├── values/
-			│   │   │   ├── vizbee.xml         (Mandatory)
-			│   │   │   ├── colors.xml         (Optional)
-			│   │   │   ├── styles.xml         (Optional)
+      │   │   ├── values/
+      │   │   │   ├── vizbee.xml         (Mandatory)
+      │   │   │   ├── colors.xml         (Optional)
+      │   │   │   ├── styles.xml         (Optional)
       │   │   ├── values-night/
       │   │   │   ├── vizbee.xml         (Optional)
       │   │   │   ├── colors.xml         (Optional)
       │   │   │   ├── styles.xml         (Optional)
-			│	  ├── ios/
-			│   │   ├── VizbeeStyles.swift     (Mandatory)
+      │	  ├── ios/
+      │   │   ├── VizbeeStyles.swift     (Mandatory)
 ```
 
 ### Notes:
