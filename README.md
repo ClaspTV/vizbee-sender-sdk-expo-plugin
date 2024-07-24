@@ -66,27 +66,28 @@ To support light and dark themes, and ensure proper styling, the following folde
 ### Folder Structure
 
 ```scss
-PROJECT_ROOT├── vizbee_resources/
-            │   ├── android/
+PROJECT_ROOT/
+├── vizbee_resources/
+      │   ├── android/
 			│   │   ├── values/
 			│   │   │   ├── vizbee.xml         (Mandatory)
 			│   │   │   ├── colors.xml         (Optional)
 			│   │   │   ├── styles.xml         (Optional)
-            │   │   ├── values-night/
-            │   │   │   ├── vizbee.xml         (Optional)
-            │   │   │   ├── colors.xml         (Optional)
-            │   │   │   ├── styles.xml         (Optional)                  
-			│	├── ios/
+      │   │   ├── values-night/
+      │   │   │   ├── vizbee.xml         (Optional)
+      │   │   │   ├── colors.xml         (Optional)
+      │   │   │   ├── styles.xml         (Optional)
+			│	  ├── ios/
 			│   │   ├── VizbeeStyles.swift     (Mandatory)
 ```
 
 ### Notes:
 
 - **Mandatory**: The `VizbeeStyles.swift` file must be added to the specified path for iOS.
-- **Mandatory**: The `vizbee.xml` file in the `values` folder is required.
+- **Mandatory**: The `vizbee.xml` file in the `values` folder is required for Android.
 - **Optional**: The files in the `values-night` and `values` folders (`colors.xml`, `styles.xml`, and `vizbee.xml` in `values-night`) are optional. They are used for light and dark theme support and will be added to the project by the plugin if present. If they are not present, they will not be added.
 
-Ensure the files are added to the correct paths mentioned above.
+**Ensure the files are added to the correct paths mentioned above.**
 
 ## Additional Information
 
