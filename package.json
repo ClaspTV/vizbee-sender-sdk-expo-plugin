@@ -1,14 +1,15 @@
 {
   "name": "vizbee-expo-sender-sdk-plugin",
-  "version": "1.0.0-rc2",
+  "version": "1.0.0-rc4",
   "description": "The Vizbee Expo plugin allows you to use react-native-vizbee-sender-sdk without leaving the managed workflow.",
   "main": "./app.plugin.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run lint && rm -rf build && tsc",
     "lint": "eslint . --ext .ts",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build && npm run remove-logs",
+    "prepublishOnly": "npm run build && npm run remove-logs",
+    "remove-logs": "sed -i '' '/console.log/d' build/src/helper.js"
   },
   "repository": {
     "type": "git",
