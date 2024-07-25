@@ -3,11 +3,11 @@ import { AndroidManifest } from "@expo/config-plugins/build/android/Manifest";
 import { log } from "../helper";
 
 /**
- * Configures the AndroidManifest to include the Vizbee activity.
+ * Configures the AndroidManifest to include the Vizbee activity and optional permission.
  *
  * This function modifies the AndroidManifest object to add the Vizbee activity
- * with the specified configurations. It handles the addition of the Vizbee activity
- * with the required intent filters and optional meta-data for lock screen control.
+ * with the specified configurations and optionally adds the foreground service
+ * media playback permission based on the enableLockScreenControl flag.
  *
  * @param androidManifest - The current AndroidManifest object.
  * @param vizbeeAppId - The Vizbee application ID.
@@ -77,16 +77,36 @@ async function configureAndroidManifest(
   // Append the vizbeeActivity XML to the activities
   application.activity.push(vizbeeActivity);
 
-  log("Vizbee activity added successfully");
+  // Add permission for foreground service media playback if needed
+  if (enableLockScreenControl) {
+    const usesPermission = manifest["uses-permission"] || [];
+    if (
+      !usesPermission.some(
+        (perm: any) =>
+          perm.$["android:name"] ===
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      )
+    ) {
+      usesPermission.push({
+        $: {
+          "android:name":
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        },
+      });
+      manifest["uses-permission"] = usesPermission;
+    }
+  }
+
+  log("Vizbee activity and permissions added successfully");
 
   return androidManifest;
 }
 
 /**
- * A config plugin to add Vizbee activity to the AndroidManifest.
+ * A config plugin to add Vizbee activity and optional permission to the AndroidManifest.
  *
  * This plugin modifies the Expo configuration to include Vizbee initialization
- * in the AndroidManifest. It supports optional lock screen controls.
+ * and optionally adds permission for foreground service media playback.
  *
  * @param config - The Expo config object.
  * @param options - The Vizbee plugin options.
