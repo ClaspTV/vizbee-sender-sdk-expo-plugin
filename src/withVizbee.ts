@@ -1,5 +1,9 @@
 import { ConfigPlugin, createRunOncePlugin } from "@expo/config-plugins";
-import { VizbeePluginOptions } from "./types";
+import {
+  LOCK_SCREEN_ACTION_BUTTON,
+  VizbeePluginAndroidOptions,
+  VizbeePluginOptions,
+} from "./types";
 
 // iOS Plugins
 import withPluginAddPodSource from "./ios_plugins/add-pod-source";
@@ -11,7 +15,7 @@ import withPluginUpdateStyleOnThemeChange from "./ios_plugins/update-style-on-th
 import withPluginInitializeVizbeeIos from "./ios_plugins/initialize-vizbee";
 import withPluginAddGoogleCast from "./ios_plugins/add-google-cast-podfile";
 
-// // Android Plugins
+// Android Plugins
 import withPluginAddMavenUrl from "./android_plugins/add-maven-url";
 import withPluginAddFontsAndroid from "./android_plugins/add-fonts";
 import withPluginAddRemoteActivity from "./android_plugins/add-remote-activity";
@@ -22,10 +26,61 @@ import withPluginCopyColorAndStyleFiles from "./android_plugins/copy-color-and-s
 import withPluginInitializeVizbeeAndroid from "./android_plugins/initialize-vizbee";
 
 /**
- * Apply iOS-specific Vizbee plugins
- * @param config - The Expo config
- * @param props - Plugin options
- * @returns Modified config
+ * Retrieves lock screen controls if they are present in the configuration.
+ * @param android - Android-specific Vizbee plugin options
+ * @returns An object containing lockScreenButtonActions and skipInMs if applicable
+ */
+const getLockScreenControlsIfPresent = (
+  android: VizbeePluginAndroidOptions
+) => {
+  let lockScreenButtonActions: LOCK_SCREEN_ACTION_BUTTON[] | undefined =
+    undefined;
+  let skipInMs: number | undefined = undefined;
+
+  if (android.enableLockScreenControl) {
+    if (!android.lockScreenControls) {
+      return { lockScreenButtonActions, skipInMs };
+    }
+
+    if (android.lockScreenControls["skipInMs"]) {
+      skipInMs = android.lockScreenControls.skipInMs || 0;
+    }
+
+    if (!android.lockScreenControls.buttonActions) {
+      return { lockScreenButtonActions, skipInMs };
+    }
+    if (android.lockScreenControls.buttonActions.length === 0) {
+      return { lockScreenButtonActions, skipInMs };
+    }
+
+    lockScreenButtonActions = [];
+
+    if (android.lockScreenControls.buttonActions.indexOf("forward") > -1) {
+      lockScreenButtonActions.push(LOCK_SCREEN_ACTION_BUTTON.ACTION_FORWARD);
+    }
+    if (android.lockScreenControls.buttonActions.indexOf("rewind") > -1) {
+      lockScreenButtonActions.push(LOCK_SCREEN_ACTION_BUTTON.ACTION_REWIND);
+    }
+    if (android.lockScreenControls.buttonActions.indexOf("togglePlay") > -1) {
+      lockScreenButtonActions.push(
+        LOCK_SCREEN_ACTION_BUTTON.ACTION_TOGGLE_PLAYBACK
+      );
+    }
+    if (android.lockScreenControls.buttonActions.indexOf("stop") > -1) {
+      lockScreenButtonActions.push(
+        LOCK_SCREEN_ACTION_BUTTON.ACTION_STOP_CASTING
+      );
+    }
+  }
+
+  return { lockScreenButtonActions, skipInMs };
+};
+
+/**
+ * Apply iOS-specific Vizbee plugins to the Expo config.
+ * @param config - The Expo config object
+ * @param props - Plugin options including iOS-specific configurations
+ * @returns Modified Expo config object with iOS-specific plugins applied
  */
 const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
   config,
@@ -49,7 +104,7 @@ const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
     target: props.ios.target,
   });
   config = withPluginUpdateStyleOnThemeChange(config, {
-    hasLayoutConfig: props.layoutConfigFilePath ? true : false,
+    hasLayoutConfig: !!props.layoutConfigFilePath,
     language: props.ios.language,
   });
   config = withPluginInitializeVizbeeIos(config, {
@@ -67,10 +122,10 @@ const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
 };
 
 /**
- * Apply Android-specific Vizbee plugins
- * @param config - The Expo config
- * @param props - Plugin options
- * @returns Modified config
+ * Apply Android-specific Vizbee plugins to the Expo config.
+ * @param config - The Expo config object
+ * @param props - Plugin options including Android-specific configurations
+ * @returns Modified Expo config object with Android-specific plugins applied
  */
 const withVizbeeAndroidPlugins: ConfigPlugin<VizbeePluginOptions> = (
   config,
@@ -80,18 +135,29 @@ const withVizbeeAndroidPlugins: ConfigPlugin<VizbeePluginOptions> = (
     props.android = {};
   }
 
+  const { lockScreenButtonActions, skipInMs } = getLockScreenControlsIfPresent(
+    props.android
+  );
+
   config = withPluginAddMavenUrl(config);
   config = withPluginAddFontsAndroid(config, {
     fontFolder: props.fontFolder,
   });
   config = withPluginAddRemoteActivity(config, {
     vizbeeAppId: props.vizbeeAppId,
+    enableLockScreenControl: props.android.enableLockScreenControl,
   });
   config = withPluginAddClearTextTraffic(config);
   config = withPluginAddCastOptionsProvider(config, {
     chromecastAppId: props.chromecastAppId,
     language: props.android.language,
     nativeSdkVersion: props.android.nativeSdkVersion,
+    enableLaunchOptions: props.android.enableLaunchOptions,
+    enableLockScreenControl: props.android.enableLockScreenControl,
+    lockScreenControls: {
+      skipInMs: skipInMs,
+      buttonActions: lockScreenButtonActions,
+    },
   });
   config = withPluginAddAndroidStyleFiles(config);
   config = withPluginCopyColorAndStyleFiles(config);
@@ -99,16 +165,17 @@ const withVizbeeAndroidPlugins: ConfigPlugin<VizbeePluginOptions> = (
     vizbeeAppId: props.vizbeeAppId,
     layoutConfigFilePath: props.layoutConfigFilePath,
     language: props.android.language,
+    enableLockScreenControl: props.android.enableLockScreenControl,
   });
 
   return config;
 };
 
 /**
- * Apply Vizbee plugins to both iOS and Android
- * @param config - The Expo config
- * @param props - Plugin options
- * @returns Modified config
+ * Apply Vizbee plugins to both iOS and Android platforms.
+ * @param config - The Expo config object
+ * @param props - Plugin options including platform-specific configurations
+ * @returns Modified Expo config object with both iOS and Android plugins applied
  */
 const withVizbee: ConfigPlugin<VizbeePluginOptions> = (config, props) => {
   config = withVizbeeIosPlugins(config, props);
@@ -116,4 +183,5 @@ const withVizbee: ConfigPlugin<VizbeePluginOptions> = (config, props) => {
   return config;
 };
 
+// Export a run-once plugin configuration for Vizbee
 export default createRunOncePlugin(withVizbee, "withVizbee", "1.0.0");

@@ -1,6 +1,6 @@
 {
   "name": "vizbee-expo-sender-sdk-plugin",
-  "version": "1.0.0-rc4",
+  "version": "1.0.0-rc5",
   "description": "The Vizbee Expo plugin allows you to use react-native-vizbee-sender-sdk without leaving the managed workflow.",
   "main": "./app.plugin.js",
   "scripts": {
