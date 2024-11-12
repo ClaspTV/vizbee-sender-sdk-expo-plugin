@@ -9,6 +9,7 @@ The Vizbee Expo plugin allows you to integrate the `react-native-vizbee-sender-s
 npm install react-native-vizbee-sender-sdk
 # or
 yarn add react-native-vizbee-sender-sdk
+```
 
 ## Installation
 
