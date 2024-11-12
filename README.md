@@ -2,6 +2,14 @@
 
 The Vizbee Expo plugin allows you to integrate the `react-native-vizbee-sender-sdk` seamlessly into your Expo managed workflow.
 
+## Prerequisites
+
+⚠️ **Important:** Before installing this plugin, you must first install the Vizbee Sender SDK:
+```bash
+npm install react-native-vizbee-sender-sdk
+# or
+yarn add react-native-vizbee-sender-sdk
+
 ## Installation
 
 ### Expo
