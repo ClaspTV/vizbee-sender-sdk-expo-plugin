@@ -14,6 +14,7 @@ import withPluginAddIosStyleFiles from "./ios_plugins/add-vizbee-styles-file";
 import withPluginUpdateStyleOnThemeChange from "./ios_plugins/update-style-on-theme-change";
 import withPluginInitializeVizbeeIos from "./ios_plugins/initialize-vizbee";
 import withPluginAddGoogleCast from "./ios_plugins/add-google-cast-podfile";
+import withPluginUpdateBridgingHeader from "./ios_plugins/update-bridging-header";
 
 // Android Plugins
 import withPluginAddMavenUrl from "./android_plugins/add-maven-url";
@@ -110,6 +111,9 @@ const withVizbeeIosPlugins: ConfigPlugin<VizbeePluginOptions> = (
   config = withPluginInitializeVizbeeIos(config, {
     vizbeeAppId: props.vizbeeAppId,
     layoutConfigFilePath: props.layoutConfigFilePath,
+    language: props.ios.language,
+  });
+  config = withPluginUpdateBridgingHeader(config, {
     language: props.ios.language,
   });
   if (props.ios.addGoogleCastToPods ?? true) {

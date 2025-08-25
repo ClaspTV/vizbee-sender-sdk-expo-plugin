@@ -47,14 +47,16 @@ function addCodeToApplicationDidBecomeActive(
   } else if (language === "swift") {
     if (hasLayoutConfig) {
       codeToAdd = `
-    if UIApplication.shared.windows.first?.traitCollection.userInterfaceStyle == .dark {
+    let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+    if scene?.windows.first?.traitCollection.userInterfaceStyle == .dark {
         Vizbee.setUIConfig(VizbeeStyles.darkTheme, layouts: getLayoutsConfig())
     } else {
         Vizbee.setUIConfig(VizbeeStyles.lightTheme, layouts: getLayoutsConfig())
     }`;
     } else {
       codeToAdd = `
-    if UIApplication.shared.windows.first?.traitCollection.userInterfaceStyle == .dark {
+    let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+    if scene?.windows.first?.traitCollection.userInterfaceStyle == .dark {
         Vizbee.setUIConfig(VizbeeStyles.darkTheme)
     } else {
         Vizbee.setUIConfig(VizbeeStyles.lightTheme)
@@ -76,11 +78,55 @@ function addCodeToApplicationDidBecomeActive(
           appDelegate.contents.slice(0, endIndex) + methodToAdd + "\n\n@end";
       }
     } else {
-      const methodToAdd = `func applicationDidBecomeActive(_ application: UIApplication) {\n${codeToAdd}\n}`;
-      const classEndIndex = appDelegate.contents.lastIndexOf("}");
-      if (classEndIndex !== -1) {
-        appDelegate.contents =
-          appDelegate.contents.slice(0, classEndIndex) + methodToAdd + "\n}";
+      // Swift: Find the AppDelegate class and insert before its closing brace
+      const methodToAdd = `\n  public override func applicationDidBecomeActive(_ application: UIApplication) {\n${codeToAdd}\n  }\n`;
+
+      // Look for the AppDelegate class declaration
+      const appDelegateClassRegex = /public\s+class\s+AppDelegate[^{]*\{/;
+      const appDelegateMatch = appDelegate.contents.match(
+        appDelegateClassRegex
+      );
+
+      if (appDelegateMatch) {
+        // Find the matching closing brace for the AppDelegate class
+        let braceCount = 0;
+        const startIndex =
+          (appDelegateMatch.index ?? 0) + appDelegateMatch[0].length;
+        let insertIndex = -1;
+
+        for (let i = startIndex; i < appDelegate.contents.length; i++) {
+          if (appDelegate.contents[i] === "{") {
+            braceCount++;
+          } else if (appDelegate.contents[i] === "}") {
+            if (braceCount === 0) {
+              // This is the closing brace of the AppDelegate class
+              insertIndex = i;
+              break;
+            }
+            braceCount--;
+          }
+        }
+
+        if (insertIndex !== -1) {
+          appDelegate.contents =
+            appDelegate.contents.slice(0, insertIndex) +
+            methodToAdd +
+            appDelegate.contents.slice(insertIndex);
+        } else {
+          // Fallback: insert before the last closing brace
+          const classEndIndex = appDelegate.contents.lastIndexOf("}");
+          if (classEndIndex !== -1) {
+            appDelegate.contents =
+              appDelegate.contents.slice(0, classEndIndex) + methodToAdd + "}";
+          }
+        }
+      } else {
+        // Fallback: insert before the last closing brace
+        const classEndIndex = appDelegate.contents.lastIndexOf("}");
+        if (classEndIndex !== -1) {
+          appDelegate.contents =
+            appDelegate.contents.slice(0, classEndIndex) + methodToAdd + "}";
+        }
       }
     }
   }
