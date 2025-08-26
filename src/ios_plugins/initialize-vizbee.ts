@@ -48,7 +48,7 @@ function appendSwiftImportIfNeeded(
   importStatement: string
 ): string {
   if (!contents.includes(importStatement)) {
-    const match = contents.match(/import UIKit/);
+    const match = contents.match(/import React/);
     if (match && match.index !== undefined) {
       const insertPosition = match.index + match[0].length;
       contents =
@@ -116,7 +116,9 @@ function modifyAppDelegate(
 
       getLayoutsConfigMethod = `
 - (VZBLayoutsConfig *)getLayoutsConfig {
-  NSString *jsonString = @"${escapeForJavaScript(JSON.stringify(layoutConfig))}";
+  NSString *jsonString = @"${escapeForJavaScript(
+    JSON.stringify(layoutConfig)
+  )}";
   NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
   NSError *error = nil;
   NSDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
@@ -170,7 +172,7 @@ function modifyAppDelegate(
 
     appDelegate.contents = appendSwiftImportIfNeeded(
       appDelegate.contents,
-      `@import RNVizbeeSenderSdk;`
+      `import VizbeeKit`
     );
 
     let layoutConfigLine = "";
@@ -209,9 +211,9 @@ func getLayoutsConfig() -> VZBLayoutsConfig {
 
     const codeToAdd = `
   let options = VZBOptions()
-  options.useVizbeeUIWindowAtLevel = UIWindow.Level.normal.rawValue + 3
+  options.useVizbeeUIWindowAtLevel = UIWindow.Level.init(UIWindow.Level.normal.rawValue + 3)
   options.uiConfig = ${themeConfig}${layoutConfigLine}
-  VizbeeBootstrap.getInstance().initialize("${vizbeeAppId}", withOptions: options)`;
+  VizbeeBootstrap.getInstance().initialize("${vizbeeAppId}", with: options)`;
 
     // Find the application(_:didFinishLaunchingWithOptions:) method and insert code there
     const didFinishLaunchingRegex =

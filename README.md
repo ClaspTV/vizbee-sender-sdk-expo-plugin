@@ -5,6 +5,7 @@ The Vizbee Expo plugin allows you to integrate the `react-native-vizbee-sender-s
 ## Prerequisites
 
 ⚠️ **Important:** Before installing this plugin, you must first install the Vizbee Sender SDK:
+
 ```bash
 npm install react-native-vizbee-sender-sdk
 # or
@@ -48,7 +49,8 @@ For Expo managed projects, add the following to your `app.json` or `app.config.j
         "ios": {
           "lnaPermissionText": "Custom description for iOS Local Area Network permission.",
           "googleCastVersion": "Version of the `google-cast-sdk-no-bluetooth-dynamic` to be added",
-          "addGoogleCastToPods": "Boolean to determine should `google-cast-sdk-no-bluetooth-dynamic` be added to podfile"
+          "addGoogleCastToPods": "Boolean to determine should `google-cast-sdk-no-bluetooth-dynamic` be added to podfile",
+          "language": "Programming language for iOS AppDelegate modifications (objcpp or swift)"
         },
         "android": {
           "nativeSdkVersion": "Native Vizbee SDK version to be added",
@@ -80,6 +82,7 @@ The plugin supports the following configuration options:
 | ios.lnaPermissionText                    | Description for iOS Local Area Network permission to be added to info.plist file.                    | ${PRODUCT_NAME} uses the local network to discover Cast-enabled devices on your WiFi network. | Optional           |
 | ios.googleCastVersion                    | Version of Google Cast SDK to be added to the iOS project.                                           | 4.8.0                                                                                         | Optional           |
 | ios.addGoogleCastToPods                  | Boolean value to indicate the adding of Google Cast SDK to iOS project.                              | true                                                                                          | Optional           |
+| ios.language                             | Programming language for iOS AppDelegate modifications. Available options: "objcpp", "swift".        | objcpp                                                                                        | Optional           |
 | android.nativeSdkVersion                 | Native SDK version to be used for the Android project.                                               | 6.5.5                                                                                         | Optional           |
 | android.enableLockScreenControl          | Boolean value to enable lock screen controls.                                                        | true                                                                                          | Optional           |
 | android.enableLaunchOptions              | Boolean value to enable launch options.                                                              | true                                                                                          | Optional           |
